@@ -10,28 +10,34 @@ from webdriver_manager.chrome import ChromeDriverManager
 import config
 
 class ZendeskBot:
-    def __init__(self):
-        self.options = webdriver.ChromeOptions()
-        # Set download directory preference
-        prefs = {
-            "download.default_directory": config.DOWNLOAD_DIR,
-            "download.prompt_for_download": False,
-            "download.directory_upgrade": True,
-            "safebrowsing.enabled": True
-        }
-        self.options.add_experimental_option("prefs", prefs)
+    def __init__(self, mock=False):
+        self.mock = mock
+        if not self.mock:
+            self.options = webdriver.ChromeOptions()
+            # Set download directory preference
+            prefs = {
+                "download.default_directory": config.DOWNLOAD_DIR,
+                "download.prompt_for_download": False,
+                "download.directory_upgrade": True,
+                "safebrowsing.enabled": True
+            }
+            self.options.add_experimental_option("prefs", prefs)
 
-        # Uncomment the next line to run in headless mode (no GUI)
-        # self.options.add_argument("--headless")
+            # Uncomment the next line to run in headless mode (no GUI)
+            # self.options.add_argument("--headless")
 
-        try:
-            self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
-        except Exception as e:
-            print(f"Error initializing Chrome driver: {e}")
-            raise
+            try:
+                self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
+            except Exception as e:
+                print(f"Error initializing Chrome driver: {e}")
+                raise
 
     def login(self):
         """Logs into Zendesk using credentials from config."""
+        if self.mock:
+            print("Running in MOCK mode: Skipping Zendesk login.")
+            return
+
         login_url = f"https://{config.ZENDESK_EMAIL.split('@')[1]}/auth/v2/login/signin" if config.ZENDESK_EMAIL and '@' in config.ZENDESK_EMAIL else "https://www.zendesk.com/login"
         # Note: The login URL above is a guess. Usually it's https://subdomain.zendesk.com/
         # User should probably set the full login URL or dashboard URL will redirect to login.
@@ -73,9 +79,18 @@ class ZendeskBot:
     def download_report(self):
         """
         Navigates to the dashboard and attempts to download the report.
+        If mock=True, generates a dummy CSV.
         NOTE: This function contains placeholders for selectors that MUST be updated
         to match the specific Zendesk Explore dashboard structure.
         """
+        if self.mock:
+            print("Running in MOCK mode: Generating dummy report...")
+            mock_file = os.path.join(config.DOWNLOAD_DIR, "mock_report.csv")
+            with open(mock_file, "w") as f:
+                f.write("metric,value\nTickets Solved,120\nCSAT,98%\nResponse Time,2h")
+            print(f"Generated mock file: {mock_file}")
+            return mock_file
+
         print("Waiting for dashboard to load...")
         time.sleep(10) # Simple wait for full dashboard load (adjust as needed)
 
@@ -106,21 +121,13 @@ class ZendeskBot:
 
             # Fail by default if no download logic is implemented
             raise NotImplementedError(
-                "Automatic download logic not implemented. Please update zendesk_bot.py with correct selectors, "
-                "or uncomment the mock data generation block for testing."
+                "Automatic download logic not implemented. Please update zendesk_bot.py with correct selectors."
             )
-
-            # --- MOCK DATA FOR TESTING (Uncomment below to test without Zendesk) ---
-            # print("Simulating a download for demonstration (creating a dummy file)...")
-            # mock_file = os.path.join(config.DOWNLOAD_DIR, "report.csv")
-            # with open(mock_file, "w") as f:
-            #     f.write("metric,value\nTickets Solved,120\nCSAT,98%\nResponse Time,2h")
-            # return mock_file
-            # -----------------------------------------------------------------------
 
         except Exception as e:
             print(f"Error downloading report: {e}")
             return None
 
     def close(self):
-        self.driver.quit()
+        if not self.mock:
+            self.driver.quit()

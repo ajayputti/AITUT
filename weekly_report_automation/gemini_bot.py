@@ -3,8 +3,12 @@ from google import genai
 import config
 
 class GeminiBot:
-    def __init__(self):
-        if not config.GEMINI_API_KEY:
+    def __init__(self, mock=False):
+        self.mock = mock
+        if self.mock:
+            self.client = None
+            print("Running in MOCK mode: Gemini API will not be called.")
+        elif not config.GEMINI_API_KEY:
             print("Warning: GEMINI_API_KEY is not set. Using a mock response.")
             self.client = None
         else:
@@ -23,6 +27,9 @@ class GeminiBot:
 
             # Convert dataframe to string representation
             data_str = df.to_string()
+
+            if self.mock:
+                return f"Simulated Gemini Response (MOCK MODE) for data:\n{data_str}\n\n* Key Highlights:\n  - Metric A is good.\n* Areas of Concern:\n  - None."
 
             # Prepare Prompt
             prompt = f"""
@@ -46,7 +53,7 @@ class GeminiBot:
                 )
                 return response.text
             else:
-                return f"Simulated Gemini Response for data:\n{data_str}\n\n[Summary would be here if API key was provided]"
+                return f"Simulated Gemini Response (MISSING KEY) for data:\n{data_str}\n\n[Summary would be here if API key was provided]"
 
         except Exception as e:
             return f"Error analyzing report: {str(e)}"

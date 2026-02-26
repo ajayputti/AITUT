@@ -56,7 +56,6 @@ Zendesk Explore dashboards are complex and often use iframes. The provided `zend
 1.  Open `zendesk_bot.py`.
 2.  Locate the `download_report` method.
 3.  Update the `find_element` calls with the actual IDs, classes, or XPaths of your dashboard's export button.
-    *   *Note: If you cannot automate the export button due to complexity, you can manually download the CSV to the `downloads` folder and the script will pick it up if you modify `zendesk_bot.py` to skip the download step.*
 
 ## Usage
 
@@ -68,6 +67,22 @@ python main.py --slide_url "https://docs.google.com/presentation/d/YOUR_PRESENTA
 
 ### First Run
 On the first run, a browser window will open asking you to log in to your Google account to authorize the Slides API.
+
+## Testing
+
+### Mock Mode
+To test the automation flow without connecting to Zendesk or Gemini (useful for verifying Google Slides permissions and general logic), use the `--mock` flag:
+
+```bash
+python main.py --slide_url "https://docs.google.com/presentation/d/YOUR_PRESENTATION_ID/edit" --mock
+```
+
+This will:
+1.  Generate a dummy CSV file locally (bypassing Zendesk).
+2.  Generate a hardcoded analysis summary (bypassing Gemini).
+3.  **Actually update** the Google Slides presentation (verifying the API connection works).
+
+**Recommendation:** Create a blank "Sandbox" Google Slide deck and use its URL for testing to avoid messing up real reports.
 
 ## Automating the Trigger
 

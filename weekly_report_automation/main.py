@@ -12,15 +12,18 @@ from slides_bot import SlidesBot
 def main():
     parser = argparse.ArgumentParser(description="Automate Weekly Zendesk Report to Google Slides.")
     parser.add_argument("--slide_url", help="URL of the Google Slide deck to update", required=True)
+    parser.add_argument("--mock", action="store_true", help="Run in mock mode (simulates Zendesk download and Gemini analysis)")
     args = parser.parse_args()
 
     print("Starting Weekly Report Automation...")
+    if args.mock:
+        print("--- MOCK MODE ENABLED ---")
 
     # 1. Download Data
     print("\n--- Step 1: Downloading Report from Zendesk ---")
     report_path = None
     try:
-        zendesk = ZendeskBot()
+        zendesk = ZendeskBot(mock=args.mock)
         zendesk.login()
         report_path = zendesk.download_report()
         zendesk.close()
@@ -30,15 +33,13 @@ def main():
             return
     except Exception as e:
         print(f"Zendesk error: {e}")
-        # For testing purposes without credentials, we might want to continue if a mock file exists
-        # But in production, we should stop.
         return
 
     # 2. Analyze Data
     print("\n--- Step 2: Analyzing Report with Gemini ---")
     analysis = ""
     try:
-        gemini = GeminiBot()
+        gemini = GeminiBot(mock=args.mock)
         analysis = gemini.analyze_report(report_path)
         print("Analysis generated successfully.")
         print(f"Summary Preview: {analysis[:100]}...")
@@ -52,6 +53,9 @@ def main():
         slides = SlidesBot()
         presentation_id = slides.get_presentation_id_from_url(args.slide_url)
         print(f"Target Presentation ID: {presentation_id}")
+
+        # Note: We don't mock the Slides part because we want to verify the output actually goes to Slides.
+        # If the user wants to test safely, they should provide a URL to a "Sandbox" presentation.
         slides.create_slide_with_text(presentation_id, "Weekly Zendesk Report Analysis", analysis)
         print("Slides updated successfully.")
     except Exception as e:
